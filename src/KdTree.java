@@ -110,13 +110,13 @@ public class KdTree
 		
 		if (horisontal) {
 			StdDraw.setPenColor(StdDraw.RED);
-			StdDraw.line(rect.xmin(), node.point.y(), rect.xmax(), node.point.y());
+			StdDraw.line(node.point.x(), rect.ymin(), node.point.x(), rect.ymax());
 		} else {
 			StdDraw.setPenColor(StdDraw.BLUE);
-			StdDraw.line(node.point.x(), rect.ymin(), node.point.x(), rect.ymax());
+			StdDraw.line(rect.xmin(), node.point.y(), rect.xmax(), node.point.y());			
 		}
 		StdDraw.setPenColor(StdDraw.BLACK);
-		StdDraw.point(node.point.x(),  node.point.y());
+		StdDraw.circle(node.point.x(),  node.point.y(), 3);
  			
 		// Left node
 		RectHV newRect;
