@@ -9,7 +9,7 @@ import edu.princeton.cs.algs4.*;
 
 public class PointSET
 {
-	SET<Point2D> set;
+	private SET<Point2D> set;
 	
 	/**
 	 * Construct an empty set of points
@@ -99,11 +99,11 @@ public class PointSET
 		if (p == null)
 			throw new java.lang.NullPointerException();
 		
-		Point2D n = p;
+		Point2D n = null;
 		double min = Double.POSITIVE_INFINITY;
 		for (Point2D q : set)
-			if (p.distanceTo(p) < min) {
-				min = p.distanceTo(p);
+			if (p.distanceTo(q) < min) {
+				min = p.distanceTo(q);
 				n = q;
 			}		
 		return n;

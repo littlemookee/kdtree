@@ -10,15 +10,17 @@ import edu.princeton.cs.algs4.*;
 public class KdTree
 {
 	private Node root;
-	private int size;	
+	private int size;
+	private Point2D closest;
+	private double minDist;
 		
 	private class Node
 	{
 		public Node left;
 		public Node right;		
 		private Point2D point;
-		public Node(boolean horisontal, Point2D point) {			
-			this.point = point;
+		public Node(Point2D p) {			
+			point = p;
 			left = null;
 			right = null;
 		}		
@@ -53,14 +55,14 @@ public class KdTree
 	
 	private Node insert(Node node, Point2D p, boolean horisontal)
 	{		
-		if (node == null) return new Node(horisontal, p);
+		if (node == null) return new Node(p);
 		
-		double cmp;
-		if (horisontal) cmp = p.x() - node.point.x();
-		else cmp = p.y() - node.point.y();
+		boolean goLeft;
+		if (horisontal) goLeft = p.x() < node.point.x();
+		else 			goLeft = p.y() < node.point.y();
 		
-		if (cmp < 0)	node.left = insert(node.left, p, !horisontal);
-		else 			node.right = insert(node.right, p, !horisontal);
+		if (goLeft)	node.left = insert(node.left, p, !horisontal);
+		else 		node.right = insert(node.right, p, !horisontal);
 		
 		return node;
 	}
@@ -74,7 +76,10 @@ public class KdTree
 		if (p == null)
 			throw new java.lang.NullPointerException();
 		
-		if (!contains(p)) root = insert(root, p, true);
+		if (!contains(p)) {
+			root = insert(root, p, true);
+			size++;
+		} 
 	}
 	
 	private boolean search(Node node, Point2D p, boolean horisontal)
@@ -83,12 +88,12 @@ public class KdTree
 		
 		if (node.point.equals(p)) return true;
 		
-		double cmp;
-		if (horisontal) cmp = p.x() - node.point.x();
-		else 			cmp = p.y() - node.point.y();
+		boolean goLeft;
+		if (horisontal) goLeft = p.x() < node.point.x();
+		else 			goLeft = p.y() < node.point.y();
 		
-		if (cmp < 0) return search(node.left, p, !horisontal);
-		return search(node.right, p, !horisontal);
+		if (goLeft)	return search(node.left, p, !horisontal);
+		else 		return search(node.right, p, !horisontal);
 	}
 	
 	/**
@@ -108,30 +113,27 @@ public class KdTree
 	{
 		if (node == null) return;
 		
+		RectHV leftRect,rightRect;
 		if (horisontal) {
 			StdDraw.setPenColor(StdDraw.RED);
-			StdDraw.line(node.point.x(), rect.ymin(), node.point.x(), rect.ymax());
+			StdDraw.line(node.point.x(),rect.ymin(),node.point.x(),rect.ymax());
+			leftRect = new RectHV(rect.xmin(),rect.ymin(),node.point.x(),rect.ymax());
+			rightRect = new RectHV(node.point.x(),rect.ymin(),rect.xmax(),rect.ymax());
 		} else {
 			StdDraw.setPenColor(StdDraw.BLUE);
-			StdDraw.line(rect.xmin(), node.point.y(), rect.xmax(), node.point.y());			
+			StdDraw.line(rect.xmin(),node.point.y(),rect.xmax(),node.point.y());
+			leftRect = new RectHV(rect.xmin(),rect.ymin(),rect.xmax(),node.point.y());
+			rightRect = new RectHV(rect.xmin(),node.point.y(),rect.xmax(),rect.ymax());
 		}
-		StdDraw.setPenColor(StdDraw.BLACK);
-		StdDraw.circle(node.point.x(),  node.point.y(), 3);
- 			
-		// Left node
-		RectHV newRect;
-		if (horisontal)
-			newRect = new RectHV(rect.xmin(), rect.ymin(), node.point.x(), rect.ymax());
-		else
-			newRect = new RectHV(rect.xmin(), rect.ymin(), rect.xmax(), node.point.y());
-		draw(node.left, newRect, !horisontal);
 
-		// Right node		
-		if (horisontal)
-			newRect = new RectHV(node.point.x(), rect.ymin(), rect.xmax(), rect.ymax());
-		else
-			newRect = new RectHV(rect.xmin(), node.point.y(), rect.xmax(), rect.ymax());
-		draw(node.right, newRect, !horisontal);
+		StdDraw.setPenColor(StdDraw.BLACK);
+		double penRadius = StdDraw.getPenRadius();
+		StdDraw.setPenRadius(0.01);
+		StdDraw.point(node.point.x(), node.point.y());
+		StdDraw.setPenRadius(penRadius);
+ 		
+		draw(node.left,leftRect,!horisontal);
+		draw(node.right,rightRect,!horisontal);
 	}
 	
 	/**
@@ -149,14 +151,18 @@ public class KdTree
 		if (rect.contains(node.point)) points.add(node.point);
 		
 		boolean toLeft;
-		if (horisontal) toLeft = rect.xmin() < node.point.x();
-		else			toLeft = rect.ymin() < node.point.y();
-		if (toLeft) range(node.left, rect, points, !horisontal);
+		
+		if (horisontal) toLeft = rect.xmin() <= node.point.x();
+		else			toLeft = rect.ymin() <= node.point.y();
+		
+		if (toLeft) 	range(node.left, rect, points, !horisontal);
 		
 		boolean toRight;
-		if (horisontal) toRight = rect.xmax() > node.point.x();
-		else			toRight = rect.ymax() > node.point.y();
-		if (toRight) range(node.right, rect, points, !horisontal);
+		
+		if (horisontal) toRight = rect.xmax() >= node.point.x();
+		else			toRight = rect.ymax() >= node.point.y();
+		
+		if (toRight) 	range(node.right, rect, points, !horisontal);
 	}
 	
 	/**
@@ -176,40 +182,36 @@ public class KdTree
 		return points;
 	}
 	
-	private Point2D nearest(Node node, Point2D query, Point2D n, double minDist, boolean horisontal)
+	private void nearest(Node node, RectHV rect, Point2D query, boolean horisontal)
 	{
-		if (node == null) return n;
+		if (node == null) return;
 		
-		if (node.point.distanceTo(query) < minDist) {
-			n = node.point;
-			minDist = node.point.distanceTo(query);
+		if (query.distanceTo(node.point) < minDist) {
+			closest = node.point;
+			minDist = query.distanceTo(closest);
 		}
 		
-		boolean toBoth;
-		if (horisontal)
-			toBoth = query.distanceTo(new Point2D(node.point.x(), query.y())) < minDist;
-		else
-			toBoth = query.distanceTo(new Point2D(query.x(), node.point.y())) < minDist;
-		
-		if (toBoth) {
-			n = nearest(node.left, query, n, minDist, !horisontal);
-			n = nearest(node.right, query, n, minDist, !horisontal);
-		} else {			
-			boolean toLeft;
-			if (horisontal) toLeft = query.x() < node.point.x();
-			else 			toLeft = query.y() < node.point.y();
-
-			if (toLeft)
-				n = nearest(node.left, query, n, minDist, !horisontal);
-			
-			boolean toRight;
-			if (horisontal) toRight = query.x() > node.point.x();
-			else			toRight = query.y() > node.point.y();
-			
-			if (toRight)
-				n = nearest(node.right, query, n, minDist, !horisontal);
+		boolean left; // Determine in what rect is the query relative to the node point
+		RectHV leftRect, rightRect;
+		if (horisontal) {
+			left = query.x() < node.point.x();
+			leftRect = new RectHV(rect.xmin(),rect.ymin(),node.point.x(),rect.ymax());
+			rightRect = new RectHV(node.point.x(),rect.ymin(),rect.xmax(),rect.ymax());
+		} else {
+			left = query.y() < node.point.y();
+			leftRect = new RectHV(rect.xmin(),rect.ymin(),rect.xmax(),node.point.y()); 
+			rightRect = new RectHV(rect.xmin(),node.point.y(),rect.xmax(),rect.ymax());			
 		}
-		return n;
+		
+		if (left) {			
+			nearest(node.left, leftRect, query, !horisontal);
+			if (rightRect.distanceTo(query) < minDist)
+				nearest(node.right, rightRect, query, !horisontal);
+		} else {
+			nearest(node.right, rightRect, query, !horisontal);
+			if (leftRect.distanceTo(query) < minDist)
+				nearest(node.left, leftRect, query, !horisontal);
+		}
 	}
 	
 	/**
@@ -222,10 +224,9 @@ public class KdTree
 		if (p == null)
 			throw new java.lang.NullPointerException();
 		
-		double minDist = Double.POSITIVE_INFINITY;		
-		Point2D n = null;
-		
-		return nearest(root, p, n, minDist, true);
+		minDist = Double.POSITIVE_INFINITY;
+		nearest(root, new RectHV(0.0, 0.0, 1.0, 1.0), p, true);
+		return closest;
 	}
 
 	/**
@@ -234,6 +235,21 @@ public class KdTree
 	 */
 	public static void main(String[] args)
 	{
-		
+        String filename = args[0];
+        In in = new In(filename);
+
+        // initialize the two data structures with point from standard input
+        KdTree kdtree = new KdTree();
+        //Point2D n = kdtree.nearest(new Point2D(0.5,0.75));
+        int N = 0;
+        while (N++ < 1000) {
+            double x = StdRandom.uniform();
+            double y = StdRandom.uniform();
+            Point2D p = new Point2D(x, y);
+            kdtree.insert(p);
+        }
+        int size = kdtree.size();
+        kdtree.draw();
+        kdtree.nearest(new Point2D(0.5,0.75));
 	}
 }
